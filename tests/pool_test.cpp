@@ -8,7 +8,7 @@ TEST(MempoolTest, mempool_shrinks_and_resizes_correctly)
 {
    {
       mem::Pool<2, 8, 32, 64> pool(5);
-      auto p = pool.Make<std::pair<double, double>>(35.0, 36.0);
+      auto p = pool.MakeUnique<std::pair<double, double>>(35.0, 36.0);
       EXPECT_EQ(5 * 4, pool.GetBlockCount());
       EXPECT_EQ((2+8+32+64) * 5, pool.GetSize());
 
@@ -19,7 +19,7 @@ TEST(MempoolTest, mempool_shrinks_and_resizes_correctly)
       EXPECT_EQ(1U, pool.GetBlockCount());
       EXPECT_EQ(32, pool.GetSize());
 
-      p.Reset();
+      p.reset();
       pool.ShrinkToFit();
       EXPECT_EQ(0U, pool.GetBlockCount());
       EXPECT_EQ(0U, pool.GetSize());
@@ -31,7 +31,7 @@ TEST(MempoolTest, mempool_shrinks_and_resizes_correctly)
 
    {
       mem::Pool<4, 16> pool(5);
-      auto p = pool.Make<int32_t>(42);
+      auto p = pool.MakeUnique<int32_t>(42);
       EXPECT_EQ(5U * 2, pool.GetBlockCount());
       EXPECT_EQ((4+16) * 5, pool.GetSize());
 
@@ -41,7 +41,7 @@ TEST(MempoolTest, mempool_shrinks_and_resizes_correctly)
       EXPECT_EQ(1U, pool.GetBlockCount());
       EXPECT_EQ(4U, pool.GetSize());
 
-      p.Reset();
+      p.reset();
       pool.ShrinkToFit();
       EXPECT_EQ(0U, pool.GetBlockCount());
       EXPECT_EQ(0U, pool.GetSize());
@@ -117,7 +117,7 @@ TEST(MempoolTest, mempool_cleans_up_when_constructor_throws)
    mem::PoolPtr<Thrower> p;
 
    EXPECT_THROW({
-      p = pool.Make<Thrower>();
+      p = pool.MakeUnique<Thrower>();
    }, MyException);
 
    pool.ShrinkToFit();
@@ -150,36 +150,36 @@ TEST(MempoolTest, mempool_grows_when_necessary_and_calls_constructors_and_destru
    EXPECT_EQ(1U, pool.GetBlockCount());
    EXPECT_EQ(sizeof(Counter), pool.GetSize());
 
-   auto p1 = pool.Make<Counter>(constructed_count, destructed_count);
+   auto p1 = pool.MakeUnique<Counter>(constructed_count, destructed_count);
    EXPECT_EQ(1U, constructed_count);
    EXPECT_EQ(0U, destructed_count);
    EXPECT_EQ(1U, pool.GetBlockCount());
    EXPECT_EQ(sizeof(Counter), pool.GetSize());
 
-   auto p2 = pool.Make<Counter>(constructed_count, destructed_count);
+   auto p2 = pool.MakeUnique<Counter>(constructed_count, destructed_count);
    EXPECT_EQ(2U, constructed_count);
    EXPECT_EQ(0U, destructed_count);
    EXPECT_EQ(2U, pool.GetBlockCount());
    EXPECT_EQ(2 * sizeof(Counter), pool.GetSize());
 
-   auto p3 = pool.Make<Counter>(constructed_count, destructed_count);
+   auto p3 = pool.MakeUnique<Counter>(constructed_count, destructed_count);
    EXPECT_EQ(3U, constructed_count);
    EXPECT_EQ(0U, destructed_count);
    EXPECT_EQ(3U, pool.GetBlockCount());
    EXPECT_EQ(3 * sizeof(Counter), pool.GetSize());
 
-   p1.Reset();
+   p1.reset();
    EXPECT_EQ(1U, destructed_count);
    EXPECT_EQ(3U, constructed_count);
 
-   auto p4 = pool.Make<Counter>(constructed_count, destructed_count);
+   auto p4 = pool.MakeUnique<Counter>(constructed_count, destructed_count);
    EXPECT_EQ(4U, constructed_count);
    EXPECT_EQ(1U, destructed_count);
    EXPECT_EQ(3U, pool.GetBlockCount());
    EXPECT_EQ(3 * sizeof(Counter), pool.GetSize());
 
-   p2.Reset();
-   p3.Reset();
+   p2.reset();
+   p3.reset();
    pool.ShrinkToFit();
    EXPECT_EQ(4U, constructed_count);
    EXPECT_EQ(3U, destructed_count);

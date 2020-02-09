@@ -79,17 +79,16 @@ public:
    }
 
    template <typename T, typename... TArgs>
-   PoolPtr<T> Make(TArgs &&... args)
+   PoolPtr<T> MakeUnique(TArgs &&... args)
    {
       using P = internal::SuitablePool<Myt, T>;
 
-      auto deallocator = [] (void * pool, T * obj) {
+      internal::Deleter<T> deleter(this, [] (void * pool, T * obj) {
          static_cast<Myt *>(pool)->P::Deallocate(obj);
-      };
+      });
       return PoolPtr<T>(
          P::template Allocate<T>(std::forward<TArgs>(args)...),
-         this,
-         deallocator);
+         deleter);
    }
 
    template <typename T, typename... TArgs>

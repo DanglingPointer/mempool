@@ -1,90 +1,39 @@
 #ifndef POOLPTR_HPP
 #define POOLPTR_HPP
 
-#include <cassert>
-#include <cstddef>
-#include <type_traits>
+#include <memory>
 
 namespace mem {
+namespace internal {
 
 template <typename T>
-class PoolPtr
+class Deleter
 {
-   template <size_t... Ss>
-   friend class Pool;
-
-   using Myt = PoolPtr<T>;
    using DeleterFn = void(*)(void *, T *);
 
-   PoolPtr(std::add_pointer_t<T> obj, void * mempool, DeleterFn dealloc) noexcept
-       : m_obj(obj)
-       , m_pool(mempool)
-       , m_dealloc(dealloc)
-   {
-      assert(m_obj);
-      assert(m_pool);
-      assert(m_dealloc);
-   }
-
 public:
-   PoolPtr() noexcept
-       : m_obj(nullptr)
-       , m_pool(nullptr)
-       , m_dealloc([](auto, auto){})
+   Deleter(void * mempool, DeleterFn dealloc)
+      : m_pool(mempool)
+      , m_dealloc(dealloc)
    {}
-   PoolPtr(Myt && other) noexcept
-       : m_obj(std::exchange(other.m_obj, nullptr))
-       , m_pool(other.m_pool)
-       , m_dealloc(other.m_dealloc)
+   Deleter()
+      : m_pool(nullptr)
+      , m_dealloc([](auto, auto){})
    {}
-   ~PoolPtr()
+   void operator()(T * obj) const
    {
-      if (m_obj)
-         m_dealloc(m_pool, m_obj);
-   }
-   Myt & operator=(Myt && other) noexcept
-   {
-      if (m_obj != other.m_obj)
-         m_obj = std::exchange(other.m_obj, nullptr);
-      if (m_pool != other.m_pool) {
-         m_pool = other.m_pool;
-         m_dealloc = other.m_dealloc;
-      }
-      return *this;
-   }
-   T * Get() const noexcept
-   {
-      return m_obj;
-   }
-   T & operator*() const noexcept
-   {
-      return *Get();
-   }
-   T * operator->() const noexcept
-   {
-      return Get();
-   }
-   operator bool() const noexcept
-   {
-      return m_obj != nullptr;
-   }
-   void Reset() noexcept
-   {
-      if (m_obj) {
-         m_dealloc(m_pool, m_obj);
-         m_obj = nullptr;
-      }
-   }
-   T * Release() noexcept
-   {
-      return std::exchange(m_obj, nullptr);
+      m_dealloc(m_pool, obj);
    }
 
 private:
-   T * m_obj;
    void * m_pool;
    DeleterFn m_dealloc;
 };
+
+} // internal
+
+template <typename T>
+using PoolPtr = std::unique_ptr<T, internal::Deleter<T>>;
 
 } // mem
 
