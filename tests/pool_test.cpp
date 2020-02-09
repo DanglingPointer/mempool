@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <utility>
+#include "poolbuilder.hpp"
 #include "mempool.hpp"
 
 namespace {
@@ -185,6 +186,21 @@ TEST(MempoolTest, mempool_grows_when_necessary_and_calls_constructors_and_destru
    EXPECT_EQ(3U, destructed_count);
    EXPECT_EQ(1U, pool.GetBlockCount());
    EXPECT_EQ(sizeof(Counter), pool.GetSize());
+}
+
+TEST(MempoolTest, poolbuilder_eliminates_duplicates_and_sorts)
+{
+   using Pool = mem::PoolSuitableFor<
+      uint64_t,
+      int32_t,
+      int64_t,
+      char,
+      float,
+      uint16_t>;
+
+   Pool p(1);
+   EXPECT_EQ(4U, p.GetBlockCount());
+   EXPECT_EQ(1U+2U+4U+8U, p.GetSize());
 }
 
 } // namespace
