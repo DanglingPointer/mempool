@@ -160,6 +160,7 @@ protected:
       }
       if (it == std::end(m_blocks)) {
          it = m_blocks.emplace(it);
+         it->taken.test_and_set(std::memory_order_acquire);
       }
       try {
          ret = new(internal::get_buffer(*it)) T(std::forward<TArgs>(args)...);

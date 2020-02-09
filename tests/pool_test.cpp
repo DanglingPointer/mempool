@@ -125,4 +125,66 @@ TEST(MempoolTest, mempool_cleans_up_when_constructor_throws)
    EXPECT_EQ(0U, pool.GetSize());
 }
 
+TEST(MempoolTest, mempool_grows_when_necessary_and_calls_constructors_and_destructors_correcly)
+{
+   size_t constructed_count = 0U;
+   size_t destructed_count = 0U;
+
+   struct Counter
+   {
+      Counter(size_t & constructed_count, size_t & destructed_count)
+         : constructed_count(constructed_count), destructed_count(destructed_count)
+      {
+         constructed_count++;
+      }
+      ~Counter()
+      {
+         destructed_count++;
+      }
+
+      size_t & constructed_count;
+      size_t & destructed_count;
+   };
+
+   mem::Pool<sizeof(Counter)> pool(1);
+   EXPECT_EQ(1U, pool.GetBlockCount());
+   EXPECT_EQ(sizeof(Counter), pool.GetSize());
+
+   auto p1 = pool.Make<Counter>(constructed_count, destructed_count);
+   EXPECT_EQ(1U, constructed_count);
+   EXPECT_EQ(0U, destructed_count);
+   EXPECT_EQ(1U, pool.GetBlockCount());
+   EXPECT_EQ(sizeof(Counter), pool.GetSize());
+
+   auto p2 = pool.Make<Counter>(constructed_count, destructed_count);
+   EXPECT_EQ(2U, constructed_count);
+   EXPECT_EQ(0U, destructed_count);
+   EXPECT_EQ(2U, pool.GetBlockCount());
+   EXPECT_EQ(2 * sizeof(Counter), pool.GetSize());
+
+   auto p3 = pool.Make<Counter>(constructed_count, destructed_count);
+   EXPECT_EQ(3U, constructed_count);
+   EXPECT_EQ(0U, destructed_count);
+   EXPECT_EQ(3U, pool.GetBlockCount());
+   EXPECT_EQ(3 * sizeof(Counter), pool.GetSize());
+
+   p1.Reset();
+   EXPECT_EQ(1U, destructed_count);
+   EXPECT_EQ(3U, constructed_count);
+
+   auto p4 = pool.Make<Counter>(constructed_count, destructed_count);
+   EXPECT_EQ(4U, constructed_count);
+   EXPECT_EQ(1U, destructed_count);
+   EXPECT_EQ(3U, pool.GetBlockCount());
+   EXPECT_EQ(3 * sizeof(Counter), pool.GetSize());
+
+   p2.Reset();
+   p3.Reset();
+   pool.ShrinkToFit();
+   EXPECT_EQ(4U, constructed_count);
+   EXPECT_EQ(3U, destructed_count);
+   EXPECT_EQ(1U, pool.GetBlockCount());
+   EXPECT_EQ(sizeof(Counter), pool.GetSize());
+}
+
 } // namespace
