@@ -134,17 +134,17 @@ TEST(MempoolTest, mempool_grows_when_necessary_and_calls_constructors_and_destru
    struct Counter
    {
       Counter(size_t & constructed_count, size_t & destructed_count)
-         : constructed_count(constructed_count), destructed_count(destructed_count)
+         : constructed_count(&constructed_count), destructed_count(&destructed_count)
       {
-         constructed_count++;
+         (*this->constructed_count)++;
       }
       ~Counter()
       {
-         destructed_count++;
+         (*this->destructed_count)++;
       }
 
-      size_t & constructed_count;
-      size_t & destructed_count;
+      size_t * const constructed_count;
+      size_t * const destructed_count;
    };
 
    mem::Pool<sizeof(Counter)> pool(1);

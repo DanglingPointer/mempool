@@ -146,7 +146,7 @@ protected:
    T * Allocate(TArgs &&... args)
    {
       static_assert(alignof(T) <= alignof(std::max_align_t));
-      static_assert(sizeof(T) <= BLOCK_SIZE);
+      static_assert(std::is_standard_layout_v<T>);
 
       T * ret = nullptr;
 
@@ -200,14 +200,14 @@ protected:
    T * Allocate(TArgs &&...)
    {
       static_assert(sizeof(T) == 0, "Type is too big, no suitable pool found");
-      std::abort();
+      assert(false);
    }
 
    template <typename T>
    void Deallocate(T *)
    {
       static_assert(sizeof(T) == 0, "Type is too big, no suitable pool found");
-      std::abort();
+      assert(false);
    }
 
    void ShrinkToFit() {}
