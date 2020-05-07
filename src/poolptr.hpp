@@ -2,6 +2,7 @@
 #define POOLPTR_HPP
 
 #include <memory>
+#include <type_traits>
 
 namespace mem {
 namespace internal {
@@ -9,7 +10,10 @@ namespace internal {
 template <typename T>
 class Deleter
 {
-   using DeleterFn = void(*)(void *, T *);
+   using DeleterFn = void(*)(void *, void *);
+
+   template <typename U>
+   friend class Deleter;
 
 public:
    Deleter(void * mempool, DeleterFn dealloc)
@@ -19,6 +23,11 @@ public:
    Deleter()
       : m_pool(nullptr)
       , m_dealloc([](auto, auto){})
+   {}
+   template <typename U, typename = std::enable_if_t<std::is_convertible_v<U *, T *>>>
+   Deleter(const Deleter<U> & other)
+      : m_pool(other.m_pool)
+      , m_dealloc(other.m_dealloc)
    {}
    void operator()(T * obj) const
    {

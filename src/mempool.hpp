@@ -83,8 +83,8 @@ public:
    {
       using P = internal::SuitablePool<Myt, T>;
 
-      internal::Deleter<T> deleter(this, [] (void * pool, T * obj) {
-         static_cast<Myt *>(pool)->P::Deallocate(obj);
+      internal::Deleter<T> deleter(this, [] (void * pool, void * obj) {
+         static_cast<Myt *>(pool)->P::Deallocate(static_cast<T *>(obj));
       });
       return PoolPtr<T>(
          P::template Allocate<T>(std::forward<TArgs>(args)...),
